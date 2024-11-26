@@ -8,6 +8,7 @@ from transformers import pipeline, T5ForConditionalGeneration, T5Tokenizer
 from IPython.display import display, HTML
 import torch
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # importing all helper functions
 from utils import *
@@ -41,7 +42,7 @@ def main():
     """.replace("\n", "")
 
     input_text_ls = []
-    nr_rounds = 3
+    nr_rounds = 10
 
     for _ in range(nr_rounds):
         input_text_ls.append(masking(original_text, 4/130))
@@ -59,7 +60,7 @@ def main():
 
     em_baseline_summary = []
 
-    for i in range(nr_rounds):
+    for i in tqdm(range(nr_rounds)):
         input_ids = tokenizer_bart(input_text_ls[i], return_tensors="pt").input_ids.to(device)
 
         with torch.no_grad():
@@ -67,9 +68,9 @@ def main():
             
         # first LLM
         baseline_outputs = model.generate(input_ids=None, encoder_outputs=encoder_outputs, max_length=300, min_length=100, 
-                                        do_sample=True, temperature=0.15)
+                                        num_beams=15, do_sample=True, temperature=0.15, early_stopping=True)
         baseline_text = tokenizer_bart.decode(baseline_outputs[0], skip_special_tokens=True)
-        print(baseline_text)
+        # print(baseline_text)
     
         
         baseline_ids = tokenizer_sum(baseline_text, return_tensors="pt").input_ids.to(device)
@@ -79,7 +80,7 @@ def main():
         baseline_sum_output = summarizer.generate(input_ids=None, encoder_outputs=baseline_encoder_outputs, max_length=70, output_hidden_states=True,
                                                 return_dict_in_generate=True, do_sample=True, temperature=0.1)
         baseline_summary = tokenizer_sum.decode(baseline_sum_output.sequences[0], skip_special_tokens=True)
-        print(baseline_summary)
+        # print(baseline_summary)
         em_baseline_summary.append(extract_hidden_states(baseline_sum_output.decoder_hidden_states))
 
         # Define SNR range
@@ -93,10 +94,10 @@ def main():
     mi_list_upper = []
 
 
-    for target_snr in snr_range:
+    for target_snr in tqdm(snr_range):
         cs_list_texts = []
         mi_list_texts = []
-        for i in range(nr_rounds):
+        for i in tqdm(range(nr_rounds)):
             input_ids = tokenizer_bart(input_text_ls[i], return_tensors="pt").input_ids.to(device)
             with torch.no_grad():
                 encoder_outputs = model.model.encoder(input_ids=input_ids)
@@ -113,7 +114,7 @@ def main():
             
             # first LLM
             noisy_outputs = model.generate(input_ids=None, encoder_outputs=modified_encoder_outputs, max_length=300, min_length=100, 
-                                        do_sample=True, temperature=0.15)
+                                        num_beams=15, do_sample=True, temperature=0.15, early_stopping=True)
             noisy_text = tokenizer_bart.decode(noisy_outputs[0], skip_special_tokens=True)
             #print(noisy_text)
         
@@ -151,7 +152,7 @@ def main():
         margin_of_error = z * (cs_list_std / np.sqrt(nr_rounds))
         cs_list_lower.append(cs_list_mean[-1] - margin_of_error)
         cs_list_upper.append(cs_list_mean[-1] + margin_of_error)
-        print(cs_list_lower)
+        # print(cs_list_lower)
 
         mi_list_std = np.std(mi_list_texts, axis=0)
         margin_of_error = z * (mi_list_std / np.sqrt(nr_rounds))
