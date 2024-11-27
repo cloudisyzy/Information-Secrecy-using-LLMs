@@ -47,13 +47,14 @@ def main():
     for _ in range(nr_rounds):
         input_text_ls.append(masking(original_text, 4/130))
 
-    original_ids = tokenizer_sum(original_text, return_tensors="pt").input_ids.to(device)
+    original_ids = tokenizer_sum('Summarize: ' + original_text, return_tensors="pt").input_ids.to(device)
+    ### Note, it seems 'Please Summarize: ' somehow leads to more deterministic summarization
 
     with torch.no_grad():
         original_encoder_outputs = summarizer.encoder(input_ids=original_ids)
         
     original_sum_output = summarizer.generate(input_ids=None, encoder_outputs=original_encoder_outputs, max_length=70, output_hidden_states=True,
-                                            return_dict_in_generate=True, do_sample=True, temperature=0.1)
+                                            return_dict_in_generate=True, do_sample=True, num_beams=10, temperature=0.1)
     original_summary = tokenizer_sum.decode(original_sum_output.sequences[0], skip_special_tokens=True)
 
     em_original_summary = extract_hidden_states(original_sum_output.decoder_hidden_states)
@@ -73,12 +74,12 @@ def main():
         # print(baseline_text)
     
         
-        baseline_ids = tokenizer_sum(baseline_text, return_tensors="pt").input_ids.to(device)
+        baseline_ids = tokenizer_sum('Summarize: ' + baseline_text, return_tensors="pt").input_ids.to(device)
         with torch.no_grad():
             baseline_encoder_outputs = summarizer.encoder(input_ids=baseline_ids)
             
         baseline_sum_output = summarizer.generate(input_ids=None, encoder_outputs=baseline_encoder_outputs, max_length=70, output_hidden_states=True,
-                                                return_dict_in_generate=True, do_sample=True, temperature=0.1)
+                                                return_dict_in_generate=True, do_sample=True, num_beams=10, temperature=0.1)
         baseline_summary = tokenizer_sum.decode(baseline_sum_output.sequences[0], skip_special_tokens=True)
         # print(baseline_summary)
         em_baseline_summary.append(extract_hidden_states(baseline_sum_output.decoder_hidden_states))
@@ -119,11 +120,11 @@ def main():
             #print(noisy_text)
         
             # second LLM
-            noisy_ids = tokenizer_sum(noisy_text, return_tensors="pt").input_ids.to(device)
+            noisy_ids = tokenizer_sum('Summarize: ' + noisy_text, return_tensors="pt").input_ids.to(device)
             with torch.no_grad():
                 noisy_encoder_outputs = summarizer.encoder(input_ids=noisy_ids)
             noisy_sum_output = summarizer.generate(input_ids=None, encoder_outputs=noisy_encoder_outputs, max_length=70, output_hidden_states=True,
-                                                return_dict_in_generate=True, do_sample=True, temperature=0.1)
+                                                return_dict_in_generate=True, do_sample=True, num_beams=10, temperature=0.1)
             noisy_summary = tokenizer_sum.decode(noisy_sum_output.sequences[0], skip_special_tokens=True)
             #print(noisy_summary)
             
