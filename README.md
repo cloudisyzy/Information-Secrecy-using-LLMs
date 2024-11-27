@@ -7,5 +7,15 @@
 
 - `Experiment.ipynb`: is a Jupyter Notebook of the entire pipeline helpful for piecewise execution and debugging.
 
+
+### Dependencies 
+
+In order to calculate mutual information:
+```
+git clone https://github.com/gregversteeg/NPEET.git
+cd NPEET
+pip install .
+```
+
 ***Authors:** Ziyue Yang, Boyue Jiang, Sreyan Ghosh, Theresa Hösl, Oscar Wink* \
 ***Supervisor:** Anubhab Ghosh*
