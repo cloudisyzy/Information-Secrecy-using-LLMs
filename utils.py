@@ -37,34 +37,33 @@ def add_noise_with_snr(encoder_output, noise_type='gaussian', target_snr_db=3, d
     Parameters:
     - encoder_output: torch.Tensor, the encoder's output (last_hidden_state).
     - noise_type: string, determines what kind of noise is added.
-    - target_snr_db: float, the desired signal-to-noise ratio in dB for awgn.
-    - dropout_rate: float, range: [0,1], determines the dropout rate for dropout noise.
+    - target_snr_db: float, the desired signal-to-noise ratio in dB for awgn and dropout.
+    - dropout_rate: float, range: [0,1], default rate for dropout noise (not used here).
     - sp_thresh: float, range: [0,1], determines the threshold for salt-and-pepper noise.
     
     Returns:
     - noisy_encoder_output: torch.Tensor, encoder output with added noise.
     """
-    signal_power = torch.mean(encoder_output ** 2)
-    target_snr = 10 ** (target_snr_db / 10)
-    noise_power = signal_power / target_snr
 
     if noise_type.lower() == 'gaussian':
-        # print(noise_power.device)
-        noise = torch.rand_like(encoder_output) * torch.sqrt(noise_power)
+        # Generate Gaussian noise
+        noise = torch.randn_like(encoder_output) * torch.sqrt(noise_power)
         return encoder_output + noise
-    
+
     elif noise_type.lower() == 'dropout':
-        dropped_enc_output = F.dropout(encoder_output, p=dropout_rate, training=True) # training is set to True to always apply the noise
-        return dropped_enc_output
-    
+        random_tensor = torch.rand_like(encoder_output)
+        mask = random_tensor >= dropout_rate
+        noisy_encoder_output = encoder_output * mask.float()
+        return noisy_encoder_output
+
     elif noise_type.lower() == 'saltpepper':
-        mask = torch.rand_like(encoder_output) < sp_thresh # the greater the sp_thresh, more noise is added
+        mask = torch.rand_like(encoder_output) < sp_thresh  # The greater the sp_thresh, more noise is added
         salt = torch.max(encoder_output)
         pepper = torch.min(encoder_output)
         noise = torch.where(torch.rand_like(encoder_output) < 0.5, salt, pepper)
         noised_enc_output = torch.where(mask, noise, encoder_output)
         return noised_enc_output
-    
+
     else:
         raise ValueError("Unsupported Noise Type. Choose between 'gaussian', 'dropout', 'saltpepper'.")
     
