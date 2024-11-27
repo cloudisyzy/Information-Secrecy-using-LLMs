@@ -44,6 +44,9 @@ def add_noise_with_snr(encoder_output, noise_type='gaussian', target_snr_db=3, d
     Returns:
     - noisy_encoder_output: torch.Tensor, encoder output with added noise.
     """
+    signal_power = torch.mean(encoder_output ** 2)
+    target_snr = 10 ** (target_snr_db / 10)
+    noise_power = signal_power / target_snr
 
     if noise_type.lower() == 'gaussian':
         # Generate Gaussian noise
