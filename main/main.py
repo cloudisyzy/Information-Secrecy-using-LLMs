@@ -85,7 +85,7 @@ def main():
 
         # Define SNR range
     # snr_range = list(range(-20, 21, 6)) + list(range(22, 55, 5)) + list(range(64, 101, 6)) 
-    snr_range = list(range(-3, 20, 4)) 
+    snr_range = list(range(-10, 40, 1)) 
     cs_list_mean = []
     cs_list_lower = []
     cs_list_upper = []
