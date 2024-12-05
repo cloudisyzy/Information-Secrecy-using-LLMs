@@ -30,7 +30,7 @@ import entropy_estimators as ee
 #     noisy_encoder_output = encoder_output + noise
 #     return noisy_encoder_output
 
-def add_noise_with_snr(encoder_output, noise_type='gaussian', target_snr_db=3, dropout_rate=0.4, sp_thresh=0.4):
+def add_noise_with_snr(encoder_output, noise_type=None, target_snr_db=3, dropout_rate=0.4, sp_thresh=0.4):
     """
     Add noise to the encoder output based on a target SNR in dB.
     
@@ -39,18 +39,29 @@ def add_noise_with_snr(encoder_output, noise_type='gaussian', target_snr_db=3, d
     - noise_type: string, determines what kind of noise is added.
     - target_snr_db: float, the desired signal-to-noise ratio in dB for awgn and dropout.
     - dropout_rate: float, range: [0,1], default rate for dropout noise (not used here).
-    - sp_thresh: float, range: [0,1], determines the threshold for salt-and-pepper noise.
+    - sp_thresh: float, range: [min(encoder_op),max(encoder_op)], determines the threshold for salt-and-pepper noise.
     
     Returns:
     - noisy_encoder_output: torch.Tensor, encoder output with added noise.
     """
-    signal_power = torch.mean(encoder_output ** 2)
-    target_snr = 10 ** (target_snr_db / 10)
-    noise_power = signal_power / target_snr
-
     if noise_type.lower() == 'gaussian':
         # Generate Gaussian noise
+        signal_power = torch.mean(encoder_output ** 2)
+        target_snr = 10 ** (target_snr_db / 10)
+        noise_power = signal_power / target_snr
         noise = torch.randn_like(encoder_output) * torch.sqrt(noise_power)
+        return encoder_output + noise
+
+    elif noise_type.lower() == 'uniform':
+        signal_power = torch.mean(encoder_output ** 2)
+        target_snr = 10 ** (target_snr_db / 10)
+        noise_power = signal_power / target_snr
+
+        # Calculate uniform distribution range based on noise power
+        # For uniform distribution, variance = (b-a)^2 / 12
+        # So, (b-a) = sqrt(12 * variance)
+        uniform_range = torch.sqrt(12 * noise_power) 
+        noise = torch.rand_like(encoder_output) * uniform_range - (uniform_range / 2) # centering to ensure zero-mean
         return encoder_output + noise
 
     elif noise_type.lower() == 'dropout':
